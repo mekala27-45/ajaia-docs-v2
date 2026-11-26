@@ -40,7 +40,7 @@ I did not type this code. I directed the work, made the decisions that were mine
 
 ## AI output that was changed or rejected
 
-Each item says how the problem was found. Most were found by the checks, not by reading.
+Each item says how the problem was found. The automated checks found most of them.
 
 1. **Reusing my April code.** Rejected by me before any code was written. See above.
 2. **Framework defaults from the project generator.** The generated config turned on Cache Components and partial prefetching. Every page in this app is per account and read live from the database, so caching adds risk and no benefit. Turned off, with a comment in `next.config.ts`.
@@ -49,7 +49,7 @@ Each item says how the problem was found. Most were found by the checks, not by 
 5. **Two wrong tests.** The first test run was 49 of 51. Both failures were bad assumptions in tests the AI had just written: the sanitizer writes `<br />` and not `<br>`, and Node treats a file named `.md` as having no extension. The behavior was checked and was fine. The tests were corrected, the code was not touched.
 6. **Impure render.** The linter rejected a `Date.now()` call during render on the dashboard. Removed.
 7. **Wrong HTTP status, found only in the browser.** Pages for documents that do not exist showed the right message but answered 200. Cause: a loading placeholder made the server start the response before the access check ran. The placeholder was removed and the browser script now asserts a 404.
-8. **A test run that tested the wrong thing.** The first browser run failed on every step. The health endpoint reported 5 documents where a fresh database has 2, which showed an old server process was still holding the port. It was stopped and the run repeated. A red or green run means nothing until you know what it ran against.
+8. **A test run that tested the wrong thing.** The first browser run failed on every step. The health endpoint reported 5 documents where a fresh database has 2, which showed an old server process was still holding the port. It was stopped and the run repeated. Since then the script prints the health check first, so it is clear what a run tested.
 9. **Phone layout.** A screenshot at phone width showed the document title squeezed to two letters. The title now has its own row on small screens, and the browser script checks that neither page scrolls sideways.
 10. **Extra features.** The agent offered Markdown export and a presence indicator as further stretch items. They were dropped when the hosting problem took time. Roles stayed, because they deepen the sharing logic the brief asks about.
 11. **A deploy that could not reach its database.** The first Netlify deploy showed only a generic database error. Instead of guessing, the agent made the health endpoint report the reason. It reported that the saved setting held no Postgres address. I added the key again under Keys and secrets in Netlify and the app connected. The diagnosis stayed in the product, with tests, because the next person who deploys this would hit the same wall.
@@ -61,7 +61,7 @@ Each item says how the problem was found. Most were found by the checks, not by 
 | TypeScript and ESLint on every change | Types, React rules, unused code |
 | 74 Vitest tests | Access rules, sanitizer, importers, save conflicts, sharing, autosave timing, database setup |
 | Integration tests against an embedded Postgres | The real SQL: constraints, cascades, the version check, two saves at once |
-| Production build before every push | The app that gets deployed, not the dev server |
+| Production build before every push | The same build that gets deployed |
 | GitHub Actions on every push | Linter, type checker, tests and build on a clean machine. Green on every run so far |
 | Browser walkthrough, 14 steps, in Chrome | Create, format, reload, share, switch accounts, view only, import, refused file, conflict, live update, role change, revoked access, phone width, delete |
 | Screenshots from that walkthrough | Layout and readability. They are in `docs/screenshots` |

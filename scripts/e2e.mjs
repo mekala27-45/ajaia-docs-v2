@@ -55,6 +55,16 @@ const browser = await chromium.launch({
 const leftovers = [];
 const context = await browser.newContext({ viewport: { width: 1280, height: 860 } });
 const page = await context.newPage();
+
+// Say what this run is pointed at before any step runs. A result is only
+// useful when it is clear which server and which data it tested.
+const health = await context.request
+  .get(`${BASE_URL}/api/health`)
+  .then((response) => response.json())
+  .catch(() => null);
+console.log(`Target: ${BASE_URL}`);
+console.log(`Health: ${health ? JSON.stringify(health) : "no answer"}\n`);
+
 const pageErrors = [];
 page.on("pageerror", (err) => pageErrors.push(err.message));
 page.on("console", (msg) => {

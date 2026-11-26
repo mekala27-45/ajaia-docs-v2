@@ -7,7 +7,7 @@ What was built, what was left out, and why.
 The brief asks for the strongest working slice inside a fixed timebox and says product judgment counts as much as code. The work was ranked like this:
 
 1. **Nobody loses text.** A document editor that drops a paragraph is worse than no editor. Saving, reloading and two people saving at once had to be right before anything else.
-2. **Sharing rules that hold on the server.** The interesting part of sharing is not the dialog. It is whether a viewer can still save by calling the API directly. They cannot.
+2. **Sharing rules that hold on the server.** A viewer who skips the UI and calls the API directly still cannot save.
 3. **A reviewer can test everything in three minutes** with no sign up, no setup and no second browser.
 4. **File import that fails clearly.** Three useful formats done properly, and a plain message for everything else.
 5. **Proof.** Tests that run the real SQL, and a browser script that walks the main flow.
@@ -36,7 +36,7 @@ One deployable unit. Pages are rendered on the server for the current account. A
 
 ## Data model
 
-Three tables in their own schema (`ajaia_docs`), so the app can share a database with other projects.
+Three tables in their own schema (`ajaia_docs`), so the app can share a database with other projects. A fourth, one row table records the schema version.
 
 ```
 users            id, name, email (unique), color
@@ -66,16 +66,16 @@ One pure function decides what a person is to a document: `owner`, `editor`, `vi
 
 Two choices worth pointing out:
 
-- **No access answers 404, not 403.** A person who guesses a document id learns nothing, not even that the document exists.
+- **No access answers 404.** A 403 would confirm that the document exists. With a 404, a person who guesses a document id learns nothing.
 - **The checks live in the service layer.** The UI hides buttons a person cannot use, but that is only for comfort. The API refuses the request on its own.
 
 ## Saving and working together
 
-Real time co-editing is not part of this build. Doing it properly means a CRDT or operational transforms plus a socket server, which is a project of its own. Doing it badly loses text, which breaks priority 1. What is there instead is small and honest:
+Real time co-editing is not part of this build. Doing it properly means a CRDT or operational transforms plus a socket server, which is a project of its own. Doing it badly loses text, which breaks priority 1. What is there instead is small:
 
 - **Autosave.** The editor saves 0.8 seconds after the last keystroke. Only one save runs at a time and it always sends the latest text. Temporary failures retry with a growing delay. Errors the server will keep refusing are shown and not retried.
 - **Optimistic concurrency.** Every save carries the version it was based on. The database write only succeeds if that version is still current (`UPDATE ... WHERE id = $1 AND version = $2`). The check is inside the SQL statement, so two saves that race cannot both win. A test fires two saves at once and asserts exactly one succeeds.
-- **A choice, not a silent overwrite.** The person who lost the race sees who saved and picks between loading the latest version and keeping their own.
+- **The user decides.** The person who lost the race sees who saved and picks between loading the latest version and keeping their own.
 - **Light sync.** An open document asks for the current version every 5 seconds. With nothing unsaved it quietly loads the newer content. It also notices a role change or removed access and reacts.
 
 The autosave logic is a plain class with no React in it (`src/lib/autosave.ts`). That made it possible to test debounce, retry and conflict behavior with fake timers.
