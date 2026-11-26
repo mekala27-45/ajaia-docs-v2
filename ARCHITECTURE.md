@@ -109,6 +109,12 @@ Why this was worth the extra adapter:
 
 On a hosted platform the app refuses to fall back to the embedded database, because the disk there does not persist.
 
+## Deployment details that matter
+
+- **Serverless connections.** Functions are frozen between requests, and a pooled connection that sat through a freeze is usually dead. On serverless hosts the pool releases idle connections after half a second, and a read whose connection was dropped is repeated once. Writes are never repeated automatically.
+- **Setup failures explain themselves.** A missing or malformed `DATABASE_URL`, a wrong password or an unreachable host each produce a specific reason on the setup screen and in `/api/health`. The connection string itself is never shown.
+- **Forgiving input.** Database consoles offer the connection string as a ready made `psql '...'` command. The app accepts that form, because that is what people paste.
+
 ## Tests
 
 | Suite | What it proves |
@@ -119,6 +125,7 @@ On a hosted platform the app refuses to fall back to the embedded database, beca
 | `documents.test.ts` | Create, save, reload, rename, 404 for strangers, stale saves, two saves at once, delete with cascade |
 | `shares.test.ts` | Viewer and editor limits, role changes, revoking, owner only rules |
 | `autosave.test.ts` | Debounce, one save at a time, retry delays, conflict stop, flush |
+| `database-setup.test.ts` | Connection string handling, failure diagnosis, when a dropped read may be repeated |
 | `scripts/e2e.mjs` | The review path in a real browser, 14 steps, including live role changes and a phone screen |
 
 The browser script found a bug the unit tests could not: pages for missing documents answered HTTP 200. Details are in the AI workflow note.
@@ -140,7 +147,7 @@ The browser script found a bug the unit tests could not: pages for missing docum
 1. **Version history** (about 1.5 hours). The `version` column already exists. Store a snapshot per save in a `document_versions` table and let the owner restore one. This also makes the keep my version choice less final.
 2. **Presence** (about 1 hour). Show who else has the document open, using the existing 5 second poll as the heartbeat.
 3. **Export to Markdown** (about 30 minutes). The stored HTML converts cleanly.
-4. **CI on pull requests** (about 30 minutes). Run `npm run check` and the build on every push. Add the browser script once it runs in a container with Chrome.
+4. **Browser script in CI** (about 30 minutes). The linter, type checker, tests and build already run on every push. The browser script needs a runner with Chrome and a started app.
 5. **Rate limiting on writes and imports** (about 30 minutes).
 
 ## What I would change before real users
@@ -160,6 +167,6 @@ I did this brief once before, on April 30, 2026, for a different Ajaia role. Thi
 | One access level | Viewer and editor roles, enforced on the server |
 | `.txt` and `.md` import | `.txt`, `.md` and `.docx`, with content checks |
 | No delete in the UI | Owner can delete, with a confirmation |
-| 5 unit tests on pure functions | 60 tests, most of them against real SQL, plus a browser script |
+| 5 unit tests on pure functions | 74 tests, many of them against real SQL, plus a browser script and CI |
 | Needed a hosted database to run locally | Runs locally with no setup |
 | Manual `db push` and seed before first use | Schema and seed are applied by the app |

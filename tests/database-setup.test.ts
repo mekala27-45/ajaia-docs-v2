@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { isHostedPlatform } from "@/server/db/client";
 import {
+  describeValueShape,
   diagnoseDatabaseError,
   isPostgresUrl,
   normalizeDatabaseUrl,
@@ -20,6 +21,24 @@ describe("normalizeDatabaseUrl", () => {
     expect(normalizeDatabaseUrl(`psql '${URL}'`)).toBe(URL);
     expect(normalizeDatabaseUrl(`psql "${URL}"`)).toBe(URL);
     expect(normalizeDatabaseUrl(`'${URL}'`)).toBe(URL);
+  });
+
+  it("pulls the address out of an .env line or a multi line snippet", () => {
+    expect(normalizeDatabaseUrl(`DATABASE_URL=${URL}`)).toBe(URL);
+    expect(normalizeDatabaseUrl(`DATABASE_URL="${URL}"`)).toBe(URL);
+    expect(normalizeDatabaseUrl(`# from the console\nDATABASE_URL='${URL}'\n`)).toBe(URL);
+    expect(normalizeDatabaseUrl(`${URL} copied`)).toBe(URL);
+  });
+
+  it("keeps a value without any address so it can be reported as invalid", () => {
+    expect(normalizeDatabaseUrl("ep-cool-name.aws.neon.tech")).toBe("ep-cool-name.aws.neon.tech");
+    expect(isPostgresUrl("ep-cool-name.aws.neon.tech")).toBe(false);
+  });
+
+  it("describes a rejected value without revealing it", () => {
+    const shape = describeValueShape("https://console.example.com/app/projects/abc");
+    expect(shape).toMatchObject({ containsPostgresAddress: false, looksLikeHttpAddress: true, lines: 1 });
+    expect(JSON.stringify(shape)).not.toContain("console.example.com");
   });
 
   it("treats empty values as not set", () => {

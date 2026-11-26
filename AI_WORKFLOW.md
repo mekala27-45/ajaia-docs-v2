@@ -34,7 +34,7 @@ I did not type this code. I directed the work, made the decisions that were mine
 
 - **First commit 21 minutes after the brief.** Schema, data layer, services, API routes and 51 passing tests.
 - **Complete app 39 minutes after the brief.** Editor, dashboard, sharing dialog and a browser walkthrough, all green.
-- **Test depth that does not fit a timebox by hand.** 60 tests, most of them against real SQL, plus a 14 step browser script. On my April attempt at this brief I finished with 5 tests.
+- **Test depth that does not fit a timebox by hand.** 74 tests, many of them against real SQL, plus a 14 step browser script. On my April attempt at this brief I finished with 5 tests.
 - **Current framework knowledge.** The project generator installed Next.js 16.4. The agent read the documentation inside the package instead of relying on memory. That avoided two wrong turns listed below.
 - **Recovery from a surprise.** When Vercel refused to deploy, configuration for two other hosts was in the repository a few minutes later.
 
@@ -58,9 +58,10 @@ Each item says how the problem was found. Most were found by the checks, not by 
 | Check | What it covers |
 | --- | --- |
 | TypeScript and ESLint on every change | Types, React rules, unused code |
-| 60 Vitest tests | Access rules, sanitizer, importers, save conflicts, sharing, autosave timing |
+| 74 Vitest tests | Access rules, sanitizer, importers, save conflicts, sharing, autosave timing, database setup |
 | Integration tests against an embedded Postgres | The real SQL: constraints, cascades, the version check, two saves at once |
 | Production build before every push | The app that gets deployed, not the dev server |
+| GitHub Actions on every push | Linter, type checker, tests and build on a clean machine. Green on every run so far |
 | Browser walkthrough, 14 steps, in Chrome | Create, format, reload, share, switch accounts, view only, import, refused file, conflict, live update, role change, revoked access, phone width, delete |
 | Screenshots from that walkthrough | Layout and readability. They are in `docs/screenshots` |
 | `/api/health` on the live address | The deployed app reaches its database and the seed ran |
@@ -71,7 +72,7 @@ What was **not** verified, so nobody has to guess:
 - Only Chrome was tested. Firefox and Safari were not.
 - No screen reader pass. Controls have labels and roles, and the dialogs use the native dialog element, but that is not the same as testing with assistive technology.
 - No load test.
-- The test suite runs against the embedded Postgres. The node-postgres adapter that production uses is exercised by the live deployment, not by the tests.
+- The committed test suite runs against the embedded Postgres. The node-postgres adapter that production uses was run once by the agent against a Postgres wire protocol server (migration, the document and sharing flow, transaction rollback) and is exercised by the live deployment. That one-off run is not part of the committed suite.
 
 ## Where judgment stayed with me
 
@@ -83,4 +84,4 @@ What was **not** verified, so nobody has to guess:
 ## What I would do differently next time
 
 - Check the hosting account before the clock starts. The blocked Vercel account cost time that had nothing to do with the product.
-- Ask the agent for the browser script earlier. It found a bug that 60 unit and integration tests could not see.
+- Ask the agent for the browser script earlier. It found a bug that the unit and integration tests could not see.

@@ -61,10 +61,11 @@ There is no password. The app ships with three seeded accounts and an account me
 
 **Engineering**
 
-- 60 automated tests, including integration tests that run the real SQL against an embedded Postgres.
+- 74 automated tests, including integration tests that run the real SQL against an embedded Postgres.
 - A 14 step browser script that walks the review path above and the edge cases around it.
 - Input validation on every endpoint and one error format for all failures.
-- `GET /api/health` reports whether the app can reach its database.
+- GitHub Actions runs the linter, the type checker, the tests and a production build on every push.
+- `GET /api/health` reports whether the app can reach its database, and the reason when it cannot.
 
 ## Run it locally
 
@@ -90,7 +91,7 @@ The app creates its own schema (`ajaia_docs`), tables and demo accounts the firs
 ## Tests and checks
 
 ```bash
-npm test          # 60 unit and integration tests (Vitest)
+npm test          # 74 unit and integration tests (Vitest)
 npm run typecheck # TypeScript
 npm run lint      # ESLint
 npm run check     # all three
@@ -111,8 +112,8 @@ The live app runs on Netlify with a free Neon Postgres database. Both have free 
 
 1. Create a Postgres database (Neon, Supabase or any other) and copy its connection string.
 2. Import this repository in Netlify. The build command (`npm run build`) and the publish folder (`.next`) are read from `netlify.toml`.
-3. Add the environment variable `DATABASE_URL` with the connection string.
-4. Deploy, then open `/api/health` on the new address. It should answer `{"ok":true,"database":"postgres",...}`.
+3. Add the environment variable `DATABASE_URL` with the connection string. It can be pasted the way the database console copies it, including a leading `psql` and quotes.
+4. Deploy, then open `/api/health` on the new address. It should answer `{"ok":true,"database":"postgres",...}`. If the database cannot be reached, the answer names the reason, for example `missing_database_url` or `authentication_failed`.
 
 The app also runs as a plain Node server on any host: `npm run build && npm start` with `DATABASE_URL` set. A `render.yaml` blueprint for Render is included.
 
@@ -124,7 +125,7 @@ All endpoints answer JSON. Errors look like `{ "error": { "code": "...", "messag
 
 | Method and path | What it does |
 | --- | --- |
-| `GET /api/health` | Database check |
+| `GET /api/health` | Database check, with the reason when it fails |
 | `POST /api/session` | Switch the acting demo account |
 | `GET /api/documents` | Documents owned by and shared with the caller |
 | `POST /api/documents` | Create a document |

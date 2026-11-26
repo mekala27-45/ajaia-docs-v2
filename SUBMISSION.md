@@ -70,7 +70,7 @@ Open http://localhost:3000. Tests: `npm test`.
 | Setup and run instructions | README |
 | Live deployment | {{LIVE_URL}} |
 | Validation and error handling | Working. Input validation on every endpoint, clear messages in the UI, one error format |
-| At least one meaningful automated test | 60 tests and a 14 step browser script |
+| At least one meaningful automated test | 74 tests, a 14 step browser script, and CI on every push |
 | Architecture note | `ARCHITECTURE.md` |
 | AI workflow note | `AI_WORKFLOW.md` |
 | Walkthrough video | {{VIDEO_URL}} |
@@ -90,7 +90,7 @@ Nothing in the core list is partial. These were left out on purpose:
 1. Version history with restore, using the version counter that already exists.
 2. Presence: show who else has the document open.
 3. Export to Markdown.
-4. CI that runs the checks and the build on every push.
+4. The browser script in CI. The other checks already run there.
 5. Rate limiting on writes and imports.
 
 ## A note on history

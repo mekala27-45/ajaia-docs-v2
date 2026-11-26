@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/server/db/client";
-import { diagnoseDatabaseError, normalizeDatabaseUrl, safeErrorDetail } from "@/server/db/diagnose";
+import {
+  describeValueShape,
+  diagnoseDatabaseError,
+  normalizeDatabaseUrl,
+  safeErrorDetail,
+} from "@/server/db/diagnose";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +32,11 @@ export async function GET() {
         hint: diagnosis.hint,
         code: diagnosis.code,
         databaseUrlSet: normalizeDatabaseUrl(process.env.DATABASE_URL) !== null,
+        // Only for a rejected value: its shape, never its characters.
+        valueShape:
+          diagnosis.reason === "invalid_connection_string"
+            ? describeValueShape(process.env.DATABASE_URL)
+            : undefined,
         detail: safeErrorDetail(err),
       },
       { status: 503 },

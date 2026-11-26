@@ -20,16 +20,34 @@ export type DatabaseDiagnosis = {
 };
 
 /**
- * Accepts the connection string the way people actually paste it. The Neon
- * console, for example, offers a ready made psql command, so the value often
- * arrives as: psql 'postgresql://...'
+ * Accepts the connection string the way people actually paste it. Database
+ * consoles offer it as a psql command (psql 'postgresql://...') or as a line
+ * for an .env file (DATABASE_URL="postgresql://..."), so the address is pulled
+ * out of whatever surrounds it.
  */
 export function normalizeDatabaseUrl(raw: string | undefined): string | null {
   if (!raw) return null;
-  let value = raw.trim();
-  value = value.replace(/^psql\s+/i, "").trim();
-  value = value.replace(/^['"]+|['"]+$/g, "").trim();
-  return value || null;
+  const value = raw.trim();
+  const address = value.match(/postgres(?:ql)?:\/\/[^\s'"`]+/i);
+  if (address) return address[0];
+  const stripped = value.replace(/^['"`]+|['"`]+$/g, "").trim();
+  return stripped || null;
+}
+
+/**
+ * Facts about a rejected value that help fix it and reveal nothing secret:
+ * no characters of the value itself are returned.
+ */
+export function describeValueShape(raw: string | undefined) {
+  const value = raw ?? "";
+  return {
+    length: value.length,
+    lines: value.split(/\r?\n/).length,
+    containsPostgresAddress: /postgres(?:ql)?:\/\//i.test(value),
+    containsSpaces: /\s/.test(value.trim()),
+    containsQuotes: /['"`]/.test(value),
+    looksLikeHttpAddress: /^https?:\/\//i.test(value.trim()),
+  };
 }
 
 export function isPostgresUrl(value: string): boolean {

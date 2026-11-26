@@ -28,7 +28,7 @@ async function connect(): Promise<Db> {
   if (url) {
     if (!isPostgresUrl(url)) {
       throw new DatabaseConfigError(
-        "DATABASE_URL must start with postgresql:// and contain only the connection string. Fix the value in the environment variables of this deployment and redeploy.",
+        "DATABASE_URL must start with postgresql:// but the current value holds no Postgres address. Copy the connection string from your database console again, save it in the environment variables of this deployment and redeploy.",
       );
     }
     const { createPostgresDb } = await import("./postgres");
