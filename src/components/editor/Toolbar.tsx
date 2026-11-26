@@ -103,7 +103,8 @@ export function Toolbar({ editor }: { editor: Editor }) {
       <Divider />
 
       <select
-        aria-label="Text style"
+        aria-label="Paragraph style"
+        title="Paragraph style. Applies to the whole paragraph, like in Google Docs."
         data-testid="block-style"
         value={state.block}
         onChange={(event) => setBlock(event.target.value as BlockStyle)}

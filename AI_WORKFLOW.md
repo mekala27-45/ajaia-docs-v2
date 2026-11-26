@@ -34,7 +34,7 @@ I did not type this code. I directed the work, made the decisions that were mine
 
 - **First commit 21 minutes after the brief.** Schema, data layer, services, API routes and 51 passing tests.
 - **Complete app 39 minutes after the brief.** Editor, dashboard, sharing dialog and a browser walkthrough, all green.
-- **Test depth that does not fit a timebox by hand.** 74 tests, many of them against real SQL, plus a 14 step browser script. On my April attempt at this brief I finished with 5 tests.
+- **Test depth that does not fit a timebox by hand.** 86 tests, many of them against real SQL, plus a 16 step browser script. On my April attempt at this brief I finished with 5 tests.
 - **Current framework knowledge.** The project generator installed Next.js 16.4. The agent read the documentation inside the package instead of relying on memory. That avoided two wrong turns listed below.
 - **Recovery from surprises.** When Vercel refused to deploy, configuration for two other hosts was in the repository a few minutes later. When the first Netlify deploy could not reach the database, the app was reporting the exact reason one deploy later.
 
@@ -51,7 +51,7 @@ Each item says how the problem was found. The automated checks found most of the
 7. **Wrong HTTP status, found only in the browser.** Pages for documents that do not exist showed the right message but answered 200. Cause: a loading placeholder made the server start the response before the access check ran. The placeholder was removed and the browser script now asserts a 404.
 8. **A test run that tested the wrong thing.** The first browser run failed on every step. The health endpoint reported 5 documents where a fresh database has 2, which showed an old server process was still holding the port. It was stopped and the run repeated. Since then the script prints the health check first, so it is clear what a run tested.
 9. **Phone layout.** A screenshot at phone width showed the document title squeezed to two letters. The title now has its own row on small screens, and the browser script checks that neither page scrolls sideways.
-10. **Extra features.** The agent offered Markdown export and a presence indicator as further stretch items. They were dropped when the hosting problem took time. Roles stayed, because they deepen the sharing logic the brief asks about.
+10. **Extra features, held back and then added.** The agent offered Markdown export and a presence indicator early on. They were dropped while the hosting problem was open, and roles stayed as the one stretch. Once the live site had passed the full browser walkthrough and an hour was left, I asked for both. They came with their own tests, including one that replays the database upgrade on an old schema, and were verified on the live site before I recorded the video.
 11. **A deploy that could not reach its database.** The first Netlify deploy showed only a generic database error. Instead of guessing, the agent made the health endpoint report the reason. It reported that the saved setting held no Postgres address. I added the key again under Keys and secrets in Netlify and the app connected. The diagnosis stayed in the product, with tests, because the next person who deploys this would hit the same wall.
 
 ## How correctness, UX quality and reliability were verified
@@ -59,14 +59,14 @@ Each item says how the problem was found. The automated checks found most of the
 | Check | What it covers |
 | --- | --- |
 | TypeScript and ESLint on every change | Types, React rules, unused code |
-| 74 Vitest tests | Access rules, sanitizer, importers, save conflicts, sharing, autosave timing, database setup |
+| 86 Vitest tests | Access rules, sanitizer, importers, save conflicts, sharing, presence, export, autosave timing, database setup, the schema upgrade |
 | Integration tests against an embedded Postgres | The real SQL: constraints, cascades, the version check, two saves at once |
 | Production build before every push | The same build that gets deployed |
 | GitHub Actions on every push | Linter, type checker, tests and build on a clean machine. Green on every run so far |
-| Browser walkthrough, 14 steps, in Chrome | Create, format, reload, share, switch accounts, view only, import, refused file, conflict, live update, role change, revoked access, phone width, delete |
+| Browser walkthrough, 16 steps, in Chrome | Create, format, reload, export, share, switch accounts, view only, import, refused file, conflict, live update, presence, role change, revoked access, phone width, delete |
 | Screenshots from that walkthrough | Layout and readability. They are in `docs/screenshots` |
 | `/api/health` on the live address | The deployed app reaches its database and the seed ran |
-| The same browser walkthrough against the live site | All 14 steps passed from an outside browser with no Netlify login. This is the check that covers the production database adapter and the hosting setup |
+| The same browser walkthrough against the live site | Every step passed from an outside browser with no Netlify login, before and after the last feature deploy. This is the check that covers the production database adapter and the hosting setup |
 | {{LIVE_CHECK_ROW}} |
 
 What was **not** verified, so nobody has to guess:
@@ -79,7 +79,7 @@ What was **not** verified, so nobody has to guess:
 ## Where judgment stayed with me
 
 - **What counts as my work.** Starting over instead of resubmitting April, and saying so in the README.
-- **Scope.** One stretch feature, and no real time editing, because a half working version of that loses text.
+- **Scope.** Roles first. No keystroke by keystroke editing, because a half working version of that loses text. Export and presence only after the core was proven on the live site.
 - **Hosting.** Moving off a blocked account instead of waiting, and keeping a second deployment path in the repository.
 - **What to claim.** These notes list what was not tested. I would rather a reviewer hear it from me.
 

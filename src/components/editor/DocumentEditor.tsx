@@ -3,18 +3,19 @@
 import Placeholder from "@tiptap/extension-placeholder";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { ArrowLeft, Users } from "lucide-react";
+import { ArrowLeft, Download, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DeleteDocumentButton } from "@/components/DeleteDocumentButton";
-import { AccessBadge, Alert, Button } from "@/components/ui";
+import { AccessBadge, Alert, Avatar, Button } from "@/components/ui";
 import { api, ApiError, errorMessage } from "@/lib/api";
 import { Autosaver, type SaveFailure, type SaveSnapshot } from "@/lib/autosave";
 import { countWords, formatRelativeTime } from "@/lib/format";
 import { MAX_TITLE_LENGTH } from "@/lib/limits";
 import { registerFlusher } from "@/lib/pendingSaves";
 import type { DocumentDetail } from "@/server/documents";
+import type { PresenceResult, Viewer } from "@/server/presence";
 import { SaveStatus } from "./SaveStatus";
 import { ShareDialog } from "./ShareDialog";
 import { Toolbar } from "./Toolbar";
@@ -53,6 +54,7 @@ export function DocumentEditor({ initial }: { initial: DocumentDetail }) {
   const [lastEdit, setLastEdit] = useState({ at: initial.updatedAt, by: initial.updatedByName });
   const [words, setWords] = useState(() => countWords(htmlToText(initial.content)));
   const [notice, setNotice] = useState<string | null>(null);
+  const [viewers, setViewers] = useState<Viewer[]>([]);
   const [accessLost, setAccessLost] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [resolving, setResolving] = useState(false);
@@ -167,19 +169,28 @@ export function DocumentEditor({ initial }: { initial: DocumentDetail }) {
     [editor],
   );
 
-  // Light sync: ask for the version every few seconds and pull newer content
-  // when there is nothing unsaved here. This is polling, not real time editing.
+  // Heartbeat and light sync. Every few seconds the open document tells the
+  // server it is still here and learns three things in one request: who else
+  // is here, whether the caller's role changed, and whether someone saved a
+  // newer version. Newer content is pulled only when nothing is unsaved here.
+  // This is polling, not real time editing.
   useEffect(() => {
     if (!editor || accessLost) return;
     let cancelled = false;
+    const presencePath = `${apiPath}/presence`;
 
     const check = async () => {
       if (document.hidden) return;
-      const saver = saverRef.current;
-      if (saver && (saver.hasUnsavedWork || saver.isStopped)) return;
       try {
-        const { document: meta } = await api<{ document: DocumentMeta }>(`${apiPath}?meta=1`);
+        const { document: meta, viewers: present } = await api<PresenceResult>(presencePath, {
+          method: "POST",
+        });
         if (cancelled) return;
+        setViewers((previous) =>
+          previous.map((viewer) => viewer.id).join() === present.map((viewer) => viewer.id).join()
+            ? previous
+            : present,
+        );
         if (meta.access !== access) {
           router.refresh(); // the role changed, so reload the page in its new mode
           return;
@@ -188,7 +199,12 @@ export function DocumentEditor({ initial }: { initial: DocumentDetail }) {
           savedTitleRef.current = meta.title;
           setTitle(meta.title);
         }
-        const current = saverRef.current?.currentVersion ?? loadedVersionRef.current;
+
+        // Presence above is reported even while typing. Content is only
+        // replaced when there is nothing unsaved here.
+        const saver = saverRef.current;
+        if (saver && (saver.hasUnsavedWork || saver.isStopped)) return;
+        const current = saver?.currentVersion ?? loadedVersionRef.current;
         if (meta.version <= current) return;
 
         const { document: latest } = await api<{ document: DocumentDetail }>(apiPath);
@@ -201,15 +217,31 @@ export function DocumentEditor({ initial }: { initial: DocumentDetail }) {
       }
     };
 
+    const leave = () => {
+      // Best effort: disappear from other people's screens right away.
+      void fetch(presencePath, { method: "DELETE", keepalive: true }).catch(() => undefined);
+    };
+
+    // The account switcher waits for this, so the person who is leaving is
+    // cleared while their session is still the active one.
+    const unregister = registerFlusher(async () => {
+      await fetch(presencePath, { method: "DELETE" }).catch(() => undefined);
+    });
+
+    void check();
     const interval = window.setInterval(() => void check(), POLL_INTERVAL_MS);
     const onVisible = () => {
       if (!document.hidden) void check();
     };
     document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pagehide", leave);
     return () => {
       cancelled = true;
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pagehide", leave);
+      unregister();
+      leave();
     };
   }, [editor, accessLost, apiPath, access, applyRemote, router]);
 
@@ -253,6 +285,17 @@ export function DocumentEditor({ initial }: { initial: DocumentDetail }) {
       setTitleError(errorMessage(err));
       if (err instanceof ApiError && (err.status === 403 || err.status === 404)) setAccessLost(true);
     }
+  }
+
+  async function downloadMarkdown() {
+    // Store pending edits first, so the file matches what is on the screen.
+    await saverRef.current?.flush();
+    const link = document.createElement("a");
+    link.href = `${apiPath}/export`;
+    link.download = "";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   }
 
   async function loadLatest() {
@@ -327,10 +370,39 @@ export function DocumentEditor({ initial }: { initial: DocumentDetail }) {
 
           <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
             <div className="flex items-center gap-3">
+              {viewers.length > 0 && !accessLost && (
+                <span
+                  className="flex items-center gap-1.5 text-xs text-slate-500"
+                  data-testid="presence"
+                  title={`Also here: ${viewers.map((viewer) => viewer.name).join(", ")}`}
+                >
+                  <span className="hidden lg:inline">Also here</span>
+                  <span className="flex -space-x-1.5">
+                    {viewers.map((viewer) => (
+                      <span key={viewer.id} className="rounded-full ring-2 ring-white">
+                        <Avatar name={viewer.name} color={viewer.color} size="sm" />
+                      </span>
+                    ))}
+                  </span>
+                  <span className="sr-only">
+                    Also viewing this document: {viewers.map((viewer) => viewer.name).join(", ")}
+                  </span>
+                </span>
+              )}
               <AccessBadge access={access} />
               {canEdit && <SaveStatus snapshot={snapshot} />}
             </div>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={downloadMarkdown}
+                aria-label="Download as Markdown"
+                title="Download as Markdown"
+                data-testid="download-markdown"
+                className="grid h-8 w-8 place-items-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+              >
+                <Download className="h-4 w-4" />
+              </button>
               <Button
                 variant={isOwner ? "primary" : "secondary"}
                 onClick={() => setShareOpen(true)}

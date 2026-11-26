@@ -135,6 +135,19 @@ await step("content and formatting survive a reload", async () => {
   expect((await page.getByTestId("title-input").inputValue()) === title, "title lost");
 });
 
+await step("download the document as Markdown", async () => {
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByTestId("download-markdown").click(),
+  ]);
+  const name = download.suggestedFilename();
+  expect(/^e2e-plan-\d+\.md$/.test(name), `unexpected file name ${name}`);
+  const text = fs.readFileSync(await download.path(), "utf8");
+  expect(text.startsWith("# Launch plan"), "heading missing from the export");
+  expect(text.includes("**bold**") && text.includes("*italic*"), "emphasis missing from the export");
+  expect(text.includes("- First point") && text.includes("- Second point"), "list missing from the export");
+});
+
 await step("owner shares with Bob as editor and Carol as viewer", async () => {
   await page.getByTestId("share-button").click();
   await page.getByTestId("share-person").selectOption("u_bob");
@@ -272,6 +285,29 @@ await step("an open document picks up changes saved by someone else", async () =
   await otherPage.keyboard.type(" Live update from Bob.");
   await otherPage.locator('[data-testid="save-status"][data-state="saved"]').waitFor();
   await page.getByText("Live update from Bob.").waitFor({ timeout: 15000 });
+  await other.close();
+});
+
+await step("people who have the document open see each other", async () => {
+  await page.goto(docUrl);
+  await page.getByTestId("editor").waitFor();
+  const other = await browser.newContext();
+  const bob = await other.newPage();
+  await bob.goto(BASE_URL);
+  await switchUser(bob, "Bob Patel");
+  await bob.goto(docUrl);
+  await bob.getByTestId("editor").waitFor();
+
+  const forAlice = page.getByTestId("presence");
+  await forAlice.waitFor({ timeout: 20000 });
+  expect((await forAlice.getAttribute("title")).includes("Bob Patel"), "Alice should see Bob");
+  const forBob = bob.getByTestId("presence");
+  await forBob.waitFor({ timeout: 20000 });
+  expect((await forBob.getAttribute("title")).includes("Alice Chen"), "Bob should see Alice");
+  await shot(page, "11-presence.png");
+
+  await bob.goto(BASE_URL); // Bob leaves the document
+  await forAlice.waitFor({ state: "detached", timeout: 30000 });
   await other.close();
 });
 

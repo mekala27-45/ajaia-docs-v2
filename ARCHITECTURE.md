@@ -36,7 +36,7 @@ One deployable unit. Pages are rendered on the server for the current account. A
 
 ## Data model
 
-Three tables in their own schema (`ajaia_docs`), so the app can share a database with other projects. A fourth, one row table records the schema version.
+Four tables in their own schema (`ajaia_docs`), so the app can share a database with other projects. A fifth, one row table records the schema version.
 
 ```
 users            id, name, email (unique), color
@@ -44,11 +44,15 @@ documents        id (uuid), title, content (HTML), owner_id -> users,
                  version (int), created_at, updated_at, updated_by -> users
 document_shares  document_id -> documents, user_id -> users,
                  role ('viewer' | 'editor'), primary key (document_id, user_id)
+document_presence  document_id -> documents, user_id -> users, last_seen,
+                 primary key (document_id, user_id)
 ```
 
 - **Content is sanitized HTML.** The editor reads and writes HTML, imports produce HTML, and a strict allowlist runs on every write. Stored content can be shown anywhere without a second cleaning step. The page uses that to render the document on the server before the editor has loaded.
 - **`version` counts content saves.** It is what makes conflict detection possible. Renames do not change it, so a rename never blocks someone who is typing.
 - **Shares are a join table with a composite key.** Adding a person and changing a role are the same idempotent upsert. Deleting a document removes its shares through `ON DELETE CASCADE`.
+
+The presence table arrived as schema version 2, after the app was already live with data in it. The upgrade ran by itself on the next cold start. A test replays that upgrade on a version 1 database and checks that nothing is lost or seeded twice.
 
 The schema is created by the app on first connection. Each statement is idempotent and the whole step runs under an advisory lock, so two cold starts at the same moment cannot collide. When the database is up to date the check costs one small query.
 
@@ -76,7 +80,8 @@ Real time co-editing is not part of this build. Doing it properly means a CRDT o
 - **Autosave.** The editor saves 0.8 seconds after the last keystroke. Only one save runs at a time and it always sends the latest text. Temporary failures retry with a growing delay. Errors the server will keep refusing are shown and not retried.
 - **Optimistic concurrency.** Every save carries the version it was based on. The database write only succeeds if that version is still current (`UPDATE ... WHERE id = $1 AND version = $2`). The check is inside the SQL statement, so two saves that race cannot both win. A test fires two saves at once and asserts exactly one succeeds.
 - **The user decides.** The person who lost the race sees who saved and picks between loading the latest version and keeping their own.
-- **Light sync.** An open document asks for the current version every 5 seconds. With nothing unsaved it quietly loads the newer content. It also notices a role change or removed access and reacts.
+- **Heartbeat and light sync.** Every 5 seconds an open document sends one request. It records that the person is still here and returns the current version, the caller's role and who else has the document open. With nothing unsaved, newer content is loaded quietly. A role change or removed access is noticed the same way.
+- **Presence.** People with the same document open see each other next to the title. A person counts as present for 15 seconds after their last heartbeat and is removed at once when they close the document or lose access. Presence rides on the request the editor already makes, so it adds no traffic.
 
 The autosave logic is a plain class with no React in it (`src/lib/autosave.ts`). That made it possible to test debounce, retry and conflict behavior with fake timers.
 
@@ -126,7 +131,9 @@ On a hosted platform the app refuses to fall back to the embedded database, beca
 | `shares.test.ts` | Viewer and editor limits, role changes, revoking, owner only rules |
 | `autosave.test.ts` | Debounce, one save at a time, retry delays, conflict stop, flush |
 | `database-setup.test.ts` | Connection string handling, failure diagnosis, when a dropped read may be repeated |
-| `scripts/e2e.mjs` | The review path in a real browser, 14 steps, including live role changes and a phone screen |
+| `presence.test.ts` | Who sees whom, stale heartbeats, leaving, no leaks to people without access, the schema upgrade |
+| `export.test.ts` | Markdown output for every supported format, safe file names |
+| `scripts/e2e.mjs` | The review path in a real browser, 16 steps, including presence, export, live role changes and a phone screen |
 
 The browser script found a bug the unit tests could not: pages for missing documents answered HTTP 200. Details are in the AI workflow note.
 
@@ -135,9 +142,8 @@ The browser script found a bug the unit tests could not: pages for missing docum
 | Left out | Reason |
 | --- | --- |
 | Real sign in | Allowed by the brief. It would have cost an hour without showing anything new about the product. |
-| Real time co-editing | Needs a CRDT and a socket layer to be correct. Conflict detection gives safety without it. |
+| Keystroke by keystroke co-editing | Needs a CRDT and a socket layer to be correct. Conflict detection gives safety without it. |
 | Comments, suggestions, version history | Each adds tables and UI surface. None is needed to demonstrate create, edit, import and share. |
-| Export to PDF or Markdown | Small, but the stretch budget went to roles because roles deepen the sharing logic the brief asks about. |
 | Images and tables in imports | Would need storage and a table extension in the editor. Dropped images and flattened tables are stated in the README. |
 | Email invitations | Sharing between seeded accounts shows the whole access model. |
 | Search, folders, pagination | The lists stay short in a demo. |
@@ -145,10 +151,9 @@ The browser script found a bug the unit tests could not: pages for missing docum
 ## What I would build next with 2 to 4 more hours
 
 1. **Version history** (about 1.5 hours). The `version` column already exists. Store a snapshot per save in a `document_versions` table and let the owner restore one. This also makes the keep my version choice less final.
-2. **Presence** (about 1 hour). Show who else has the document open, using the existing 5 second poll as the heartbeat.
-3. **Export to Markdown** (about 30 minutes). The stored HTML converts cleanly.
-4. **Browser script in CI** (about 30 minutes). The linter, type checker, tests and build already run on every push. The browser script needs a runner with Chrome and a started app.
-5. **Rate limiting on writes and imports** (about 30 minutes).
+2. **Browser script in CI** (about 30 minutes). The linter, type checker, tests and build already run on every push. The browser script needs a runner with Chrome and a started app.
+3. **Rate limiting on writes and imports** (about 30 minutes).
+4. **Comments on a selection** (about 2 hours). The first feature that needs its own table and its own permissions.
 
 ## What I would change before real users
 
@@ -167,6 +172,7 @@ I did this brief once before, on April 30, 2026, for a different Ajaia role. Thi
 | One access level | Viewer and editor roles, enforced on the server |
 | `.txt` and `.md` import | `.txt`, `.md` and `.docx`, with content checks |
 | No delete in the UI | Owner can delete, with a confirmation |
-| 5 unit tests on pure functions | 74 tests, many of them against real SQL, plus a browser script and CI |
+| 5 unit tests on pure functions | 86 tests, many of them against real SQL, plus a browser script and CI |
+| No export, no sign of who else is in a document | Markdown export and a presence indicator |
 | Needed a hosted database to run locally | Runs locally with no setup |
 | Manual `db push` and seed before first use | Schema and seed are applied by the app |

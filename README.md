@@ -30,14 +30,17 @@ There is no password. The app ships with three seeded accounts and an account me
 5. Use the account menu to switch to **Bob Patel**. The document is under **Shared with me** with a `Can edit` badge. Open it and add a line.
 6. Switch to **Carol Reyes**. She can open the document and read the line from Bob, but the editor is read only and there is no toolbar.
 7. Switch back to **Alice Chen**. On the dashboard click **Import file** and pick a file from the [`samples`](samples) folder. It opens as a new document that Alice owns.
-8. Optional: open the same document as Alice and as Bob in two browsers and type in both. The slower save is not written over the faster one. The person who lost the race gets a choice between loading the latest version and keeping their own.
+8. Click the download icon next to Share. The document comes down as a Markdown file.
+9. Optional: open the same document as Alice and as Bob in two browsers. Each sees the other under **Also here** within about 5 seconds. Then type in both. The slower save is not written over the faster one. The person who lost the race gets a choice between loading the latest version and keeping their own.
 
 ## What works
 
 **Documents**
 
 - Create, rename, edit, delete and reopen documents.
+- Download any document as a Markdown file.
 - Rich text: bold, italic, underline, strikethrough, headings 1 to 3, bulleted and numbered lists, quotes, undo and redo, clear formatting. Keyboard shortcuts work.
+- Headings, lists and quotes apply to the whole paragraph, as in Google Docs. Bold, italic, underline and strikethrough apply to the selected text.
 - Autosave 0.8 seconds after the last keystroke, with a visible status. Ctrl+S or Cmd+S saves at once. Failed saves retry with a growing delay.
 - Content is stored as sanitized HTML, so formatting survives a refresh exactly as typed.
 
@@ -56,13 +59,14 @@ There is no password. The app ships with three seeded accounts and an account me
 
 **Working on the same document**
 
-- This is not real time co-editing. An open document checks for a newer version every 5 seconds and loads it when you have nothing unsaved.
+- People who have the same document open see each other next to the title, within about 5 seconds.
+- This is not keystroke by keystroke co-editing. An open document checks for a newer version every 5 seconds and loads it when you have nothing unsaved.
 - Saves carry the version they were based on. A stale save is rejected with a 409 and the user decides what to keep. Nothing is overwritten silently.
 
 **Engineering**
 
-- 74 automated tests, including integration tests that run the real SQL against an embedded Postgres.
-- A 14 step browser script that walks the review path above and the edge cases around it.
+- 86 automated tests, including integration tests that run the real SQL against an embedded Postgres.
+- A 16 step browser script that walks the review path above and the edge cases around it. It also passes against the live site.
 - Input validation on every endpoint and one error format for all failures.
 - GitHub Actions runs the linter, the type checker, the tests and a production build on every push.
 - `GET /api/health` reports whether the app can reach its database, and the reason when it cannot.
@@ -91,7 +95,7 @@ The app creates its own schema (`ajaia_docs`), tables and demo accounts the firs
 ## Tests and checks
 
 ```bash
-npm test          # 74 unit and integration tests (Vitest)
+npm test          # 86 unit and integration tests (Vitest)
 npm run typecheck # TypeScript
 npm run lint      # ESLint
 npm run check     # all three
@@ -132,6 +136,9 @@ All endpoints answer JSON. Errors look like `{ "error": { "code": "...", "messag
 | `GET /api/documents/:id` | Read a document. `?meta=1` leaves out the content |
 | `PATCH /api/documents/:id` | Rename, save content, or both. Content needs `baseVersion` |
 | `DELETE /api/documents/:id` | Delete (owner only) |
+| `GET /api/documents/:id/export` | Download as Markdown |
+| `POST /api/documents/:id/presence` | Heartbeat from an open document: current version and role, and who else is here |
+| `DELETE /api/documents/:id/presence` | The caller closed the document |
 | `GET /api/documents/:id/shares` | Who has access |
 | `PUT /api/documents/:id/shares` | Add a person or change a role (owner only) |
 | `DELETE /api/documents/:id/shares/:userId` | Remove a person (owner only) |
@@ -151,6 +158,8 @@ src/
     access.ts             Who may do what (pure functions)
     documents.ts          Create, read, save, delete, with access checks
     shares.ts             Sharing rules
+    presence.ts           Who has a document open
+    export.ts             Document to Markdown
     importers.ts          .txt, .md and .docx to sanitized HTML
     content.ts            HTML sanitizer and text helpers
     db/                   Database adapters, schema and seed
@@ -162,7 +171,8 @@ samples/                  Files to try the import with
 ## Known limits
 
 - Sign in is simulated. Anyone who opens the app can act as any of the three accounts. The brief allows this, and the real rules behind it (ownership, roles, access checks) are fully enforced.
-- No real time co-editing, comments, version history or export.
+- No keystroke by keystroke co-editing, comments or version history.
+- Export is Markdown only. Markdown has no underline, so underlined text is exported as plain text.
 - Imports keep headings, bold, italic, underline, lists, quotes and links. Images are dropped and tables are flattened to text.
 - Sharing works only between the seeded accounts. No invitations are sent.
 - The free hosting tier sleeps when idle, so the first request after a quiet period can take a few seconds.

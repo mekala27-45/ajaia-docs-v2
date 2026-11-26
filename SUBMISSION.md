@@ -70,28 +70,27 @@ Open http://localhost:3000. Tests: `npm test`.
 | Setup and run instructions | README |
 | Live deployment | https://ajaia-docs-v2.netlify.app |
 | Validation and error handling | Working. Input validation on every endpoint, clear messages in the UI, one error format |
-| At least one meaningful automated test | 74 tests, a 14 step browser script, and CI on every push |
+| At least one meaningful automated test | 86 tests, a 16 step browser script that also passes on the live site, and CI on every push |
 | Architecture note | `ARCHITECTURE.md` |
 | AI workflow note | `AI_WORKFLOW.md` |
 | Walkthrough video | {{VIDEO_URL}} |
-| Stretch (optional) | Role based sharing: `Can edit` and `View only`, enforced on the server |
+| Stretch (optional) | Role based sharing: `Can edit` and `View only`, enforced on the server. Added after the core was verified on the live site: a presence indicator and Markdown export |
 
 ## What is partial or not built
 
 Nothing in the core list is partial. These were left out on purpose:
 
 - **Real sign in.** Accounts are seeded and switched from a menu, as the brief allows.
-- **Real time co-editing.** Two people can work on one document, but not keystroke by keystroke. An open document picks up saved changes within about 5 seconds, and a save that would overwrite newer work is stopped and the user chooses what to keep.
-- **Comments, version history, export.**
+- **Keystroke by keystroke co-editing.** Two people can work on one document and see each other there. An open document picks up saved changes within about 5 seconds, and a save that would overwrite newer work is stopped and the user chooses what to keep.
+- **Comments and version history.**
 - **Images and tables in imported files.** Images are dropped and tables become plain text.
 
 ## What I would build next with another 2 to 4 hours
 
 1. Version history with restore, using the version counter that already exists.
-2. Presence: show who else has the document open.
-3. Export to Markdown.
-4. The browser script in CI. The other checks already run there.
-5. Rate limiting on writes and imports.
+2. The browser script in CI. The other checks already run there.
+3. Rate limiting on writes and imports.
+4. Comments on a selection.
 
 ## A note on history
 

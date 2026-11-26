@@ -5,7 +5,7 @@ import type { Db, Queryable } from "./types";
  * stored in the database on cold start and applies the statements when they
  * differ. Every statement is idempotent, so running them twice is safe.
  */
-export const SCHEMA_VERSION = "1";
+export const SCHEMA_VERSION = "2";
 
 export const DEFAULT_USER_ID = "u_alice";
 
@@ -45,6 +45,14 @@ const DDL: string[] = [
    )`,
   `CREATE INDEX IF NOT EXISTS document_shares_user_idx
      ON ajaia_docs.document_shares (user_id)`,
+  // Version 2: who has a document open right now. One row per person and
+  // document, refreshed by a heartbeat from the open editor.
+  `CREATE TABLE IF NOT EXISTS ajaia_docs.document_presence (
+     document_id uuid NOT NULL REFERENCES ajaia_docs.documents(id) ON DELETE CASCADE,
+     user_id     text NOT NULL REFERENCES ajaia_docs.users(id) ON DELETE CASCADE,
+     last_seen   timestamptz NOT NULL DEFAULT now(),
+     PRIMARY KEY (document_id, user_id)
+   )`,
 ];
 
 export const SEED_USERS = [
