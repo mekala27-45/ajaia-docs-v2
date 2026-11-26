@@ -284,55 +284,64 @@ export function DocumentEditor({ initial }: { initial: DocumentDetail }) {
   return (
     <div className="flex flex-1 flex-col">
       <div className="sticky top-14 z-20 border-b border-slate-200 bg-white">
+        {/* One row on wide screens. On a phone the title gets its own row. */}
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2">
-          <Link
-            href="/"
-            aria-label="Back to documents"
-            title="Back to documents"
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-slate-500 hover:bg-slate-100"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
+          <div className="flex min-w-0 flex-1 basis-full items-center gap-2 sm:basis-0">
+            <Link
+              href="/"
+              aria-label="Back to documents"
+              title="Back to documents"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-slate-500 hover:bg-slate-100"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
 
-          <input
-            value={title}
-            readOnly={!canEdit || accessLost}
-            maxLength={MAX_TITLE_LENGTH}
-            aria-label="Document title"
-            data-testid="title-input"
-            placeholder="Untitled document"
-            onChange={(event) => {
-              setTitle(event.target.value);
-              setTitleError(null);
-            }}
-            onFocus={() => {
-              titleFocusedRef.current = true;
-            }}
-            onBlur={() => {
-              titleFocusedRef.current = false;
-              if (canEdit && !accessLost) void commitTitle();
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") event.currentTarget.blur();
-              if (event.key === "Escape") {
-                setTitle(savedTitleRef.current);
-                event.currentTarget.blur();
-              }
-            }}
-            className="min-w-0 flex-1 truncate rounded-md border border-transparent bg-transparent px-2 py-1 text-lg font-semibold text-slate-900 hover:border-slate-200 focus:border-blue-500 focus:outline-none read-only:hover:border-transparent"
-          />
+            <input
+              value={title}
+              readOnly={!canEdit || accessLost}
+              maxLength={MAX_TITLE_LENGTH}
+              aria-label="Document title"
+              data-testid="title-input"
+              placeholder="Untitled document"
+              onChange={(event) => {
+                setTitle(event.target.value);
+                setTitleError(null);
+              }}
+              onFocus={() => {
+                titleFocusedRef.current = true;
+              }}
+              onBlur={() => {
+                titleFocusedRef.current = false;
+                if (canEdit && !accessLost) void commitTitle();
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") event.currentTarget.blur();
+                if (event.key === "Escape") {
+                  setTitle(savedTitleRef.current);
+                  event.currentTarget.blur();
+                }
+              }}
+              className="min-w-0 flex-1 truncate rounded-md border border-transparent bg-transparent px-2 py-1 text-lg font-semibold text-slate-900 hover:border-slate-200 focus:border-blue-500 focus:outline-none read-only:hover:border-transparent"
+            />
+          </div>
 
-          <AccessBadge access={access} />
-          {canEdit && <SaveStatus snapshot={snapshot} />}
-          <Button
-            variant={isOwner ? "primary" : "secondary"}
-            onClick={() => setShareOpen(true)}
-            data-testid="share-button"
-          >
-            <Users className="h-4 w-4" />
-            {isOwner ? "Share" : "People"}
-          </Button>
-          {isOwner && <DeleteDocumentButton documentId={initial.id} title={title} redirectTo="/" />}
+          <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
+            <div className="flex items-center gap-3">
+              <AccessBadge access={access} />
+              {canEdit && <SaveStatus snapshot={snapshot} />}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={isOwner ? "primary" : "secondary"}
+                onClick={() => setShareOpen(true)}
+                data-testid="share-button"
+              >
+                <Users className="h-4 w-4" />
+                {isOwner ? "Share" : "People"}
+              </Button>
+              {isOwner && <DeleteDocumentButton documentId={initial.id} title={title} redirectTo="/" />}
+            </div>
+          </div>
         </div>
         {canEdit && !accessLost && editor && <Toolbar editor={editor} />}
       </div>

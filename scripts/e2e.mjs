@@ -254,6 +254,63 @@ await step("an open document picks up changes saved by someone else", async () =
   await other.close();
 });
 
+await step("an open editor reacts when the owner changes or removes access", async () => {
+  await page.goto(BASE_URL);
+  await switchUser(page, "Alice Chen");
+  const id = await page.evaluate(async () => {
+    const response = await fetch("/api/documents", { method: "POST" });
+    return (await response.json()).document.id;
+  });
+  const setRole = (role) =>
+    page.evaluate(
+      async ([docId, nextRole]) => {
+        await fetch(`/api/documents/${docId}/shares`, {
+          method: "PUT",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ userId: "u_bob", role: nextRole }),
+        });
+      },
+      [id, role],
+    );
+  await setRole("editor");
+
+  const other = await browser.newContext();
+  const bob = await other.newPage();
+  await bob.goto(BASE_URL);
+  await switchUser(bob, "Bob Patel");
+  await bob.goto(`${BASE_URL}/d/${id}`);
+  await bob.locator('[data-testid="editor"][contenteditable="true"]').waitFor();
+
+  await setRole("viewer");
+  await bob.locator('[data-testid="editor"][contenteditable="false"]').waitFor({ timeout: 20000 });
+  await bob.getByText("You have view only access").waitFor();
+
+  await page.evaluate(async (docId) => {
+    await fetch(`/api/documents/${docId}/shares/u_bob`, { method: "DELETE" });
+  }, id);
+  await bob.getByText("You no longer have access").waitFor({ timeout: 20000 });
+
+  await page.evaluate(async (docId) => {
+    await fetch(`/api/documents/${docId}`, { method: "DELETE" });
+  }, id);
+  await other.close();
+});
+
+await step("the dashboard and the editor fit a phone screen", async () => {
+  const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true });
+  const mobile = await phone.newPage();
+  await mobile.goto(BASE_URL);
+  await mobile.getByTestId("owned-documents").waitFor();
+  const fits = () => mobile.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
+  expect(await fits(), "dashboard scrolls sideways on a phone");
+  await mobile.screenshot({ path: path.join(SHOTS_DIR, "09-phone-dashboard.png") });
+  await mobile.goto(docUrl);
+  await mobile.getByTestId("editor").waitFor();
+  expect(await fits(), "editor page scrolls sideways on a phone");
+  await mobile.screenshot({ path: path.join(SHOTS_DIR, "10-phone-editor.png") });
+  await phone.close();
+});
+
 await step("owner deletes the document", async () => {
   await page.goto(docUrl);
   await page.getByRole("button", { name: /^Delete/ }).click();
