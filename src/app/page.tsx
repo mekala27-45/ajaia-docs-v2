@@ -85,7 +85,7 @@ function DocumentSection({
 
 export default async function DashboardPage() {
   const shell = await loadShell();
-  if ("problem" in shell) return <DatabaseProblem message={shell.problem} />;
+  if ("problem" in shell) return <DatabaseProblem message={shell.problem} reason={shell.reason} />;
 
   const { owned, shared } = await listDocuments(shell.db, shell.user.id);
 

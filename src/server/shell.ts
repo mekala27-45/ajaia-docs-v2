@@ -1,10 +1,10 @@
 import { unstable_rethrow } from "next/navigation";
 import { getContext, type RequestContext } from "./context";
-import { DatabaseConfigError } from "./db/client";
+import { diagnoseDatabaseError } from "./db/diagnose";
 import { listUsers, type User } from "./users";
 
 export type Shell = RequestContext & { users: User[] };
-export type ShellProblem = { problem: string };
+export type ShellProblem = { problem: string; reason: string };
 
 /**
  * Everything a page needs before it can render: the database, the acting user
@@ -19,7 +19,7 @@ export async function loadShell(): Promise<Shell | ShellProblem> {
   } catch (err) {
     unstable_rethrow(err); // let the framework's own control flow errors through
     console.error("[shell] could not load the app shell:", err);
-    if (err instanceof DatabaseConfigError) return { problem: err.message };
-    return { problem: "The app cannot reach its database right now. Please try again in a moment." };
+    const diagnosis = diagnoseDatabaseError(err);
+    return { problem: diagnosis.hint, reason: diagnosis.reason };
   }
 }

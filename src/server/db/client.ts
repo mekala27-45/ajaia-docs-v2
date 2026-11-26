@@ -1,4 +1,5 @@
 import path from "node:path";
+import { isPostgresUrl, normalizeDatabaseUrl } from "./diagnose";
 import { migrate } from "./schema";
 import type { Db } from "./types";
 
@@ -13,14 +14,29 @@ export class DatabaseConfigError extends Error {
 type GlobalWithDb = typeof globalThis & { __ajaiaDocsDb?: Promise<Db> };
 const globalRef = globalThis as GlobalWithDb;
 
+/** True on platforms where the local disk does not survive, so PGlite must not be used. */
+export function isHostedPlatform(env: Record<string, string | undefined> = process.env): boolean {
+  return Boolean(
+    env.VERCEL || env.RENDER || env.NETLIFY || env.AWS_LAMBDA_FUNCTION_NAME || env.LAMBDA_TASK_ROOT,
+  );
+}
+
 async function connect(): Promise<Db> {
-  const url = process.env.DATABASE_URL?.trim();
+  const url = normalizeDatabaseUrl(process.env.DATABASE_URL);
   let db: Db;
 
   if (url) {
+    if (!isPostgresUrl(url)) {
+      throw new DatabaseConfigError(
+        "DATABASE_URL must start with postgresql:// and contain only the connection string. Fix the value in the environment variables of this deployment and redeploy.",
+      );
+    }
     const { createPostgresDb } = await import("./postgres");
-    db = createPostgresDb(url);
-  } else if (process.env.VERCEL || process.env.RENDER || process.env.NETLIFY) {
+    const serverless = Boolean(
+      process.env.NETLIFY || process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME,
+    );
+    db = createPostgresDb(url, serverless);
+  } else if (isHostedPlatform()) {
     // Hosted disks are wiped on every deploy or request, so an embedded
     // database would silently lose documents. Fail loudly instead.
     throw new DatabaseConfigError(

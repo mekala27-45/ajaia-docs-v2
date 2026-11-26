@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/server/db/client";
+import { diagnoseDatabaseError, normalizeDatabaseUrl, safeErrorDetail } from "@/server/db/diagnose";
 
 export const dynamic = "force-dynamic";
 
-/** Deployment check: proves the app can reach its database and that the seed ran. */
+/**
+ * Deployment check. Proves the app can reach its database and that the seed
+ * ran. When it cannot, it says why in terms an operator can act on, without
+ * exposing the connection string.
+ */
 export async function GET() {
   try {
     const db = await getDb();
@@ -14,7 +19,17 @@ export async function GET() {
     return NextResponse.json({ ok: true, database: db.engine, ...rows[0] });
   } catch (err) {
     console.error("[health] database check failed:", err);
-    const message = err instanceof Error && err.name === "DatabaseConfigError" ? err.message : "The database is not reachable.";
-    return NextResponse.json({ ok: false, error: message }, { status: 503 });
+    const diagnosis = diagnoseDatabaseError(err);
+    return NextResponse.json(
+      {
+        ok: false,
+        reason: diagnosis.reason,
+        hint: diagnosis.hint,
+        code: diagnosis.code,
+        databaseUrlSet: normalizeDatabaseUrl(process.env.DATABASE_URL) !== null,
+        detail: safeErrorDetail(err),
+      },
+      { status: 503 },
+    );
   }
 }
