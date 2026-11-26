@@ -1,0 +1,5 @@
+# Netlify detects Next.js and adds its adapter on its own.
+# Set DATABASE_URL in the site environment variables before the first deploy.
+[build]
+  command = "npm run build"
+  publish = ".next"

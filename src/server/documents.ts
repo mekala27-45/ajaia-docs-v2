@@ -115,10 +115,16 @@ export async function listDocuments(db: Queryable, userId: string): Promise<Docu
   for (const row of rows) {
     const access = resolveAccess(userId, row.owner_id, row.share_role);
     if (!access) continue;
+    // Many documents open with a heading that repeats the title. Skip it so
+    // the preview shows the first real line of text.
+    let snippet = toSnippet(row.content_head, 180);
+    if (snippet.toLowerCase().startsWith(row.title.toLowerCase())) {
+      snippet = snippet.slice(row.title.length).trim();
+    }
     const summary: DocumentSummary = {
       id: row.id,
       title: row.title,
-      snippet: toSnippet(row.content_head),
+      snippet,
       ownerId: row.owner_id,
       ownerName: row.owner_name,
       access,

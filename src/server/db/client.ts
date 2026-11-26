@@ -20,11 +20,11 @@ async function connect(): Promise<Db> {
   if (url) {
     const { createPostgresDb } = await import("./postgres");
     db = createPostgresDb(url);
-  } else if (process.env.VERCEL) {
-    // A serverless disk is wiped between requests, so an embedded database
-    // would silently lose documents. Fail loudly instead.
+  } else if (process.env.VERCEL || process.env.RENDER || process.env.NETLIFY) {
+    // Hosted disks are wiped on every deploy or request, so an embedded
+    // database would silently lose documents. Fail loudly instead.
     throw new DatabaseConfigError(
-      "DATABASE_URL is not set. Add a Postgres connection string to the project environment variables and redeploy.",
+      "DATABASE_URL is not set. Add a Postgres connection string to the environment variables of this deployment and redeploy.",
     );
   } else {
     const { createPgliteDb } = await import("./pglite");

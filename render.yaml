@@ -1,0 +1,12 @@
+# Render blueprint. Second deployment path: a plain Node web service.
+# Render asks for DATABASE_URL when the blueprint is applied.
+services:
+  - type: web
+    name: ajaia-docs-v2
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        sync: false
