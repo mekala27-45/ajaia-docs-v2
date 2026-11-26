@@ -1,10 +1,10 @@
 # Architecture note
 
-What I built, what I left out, and why.
+What was built, what was left out, and why.
 
-## What I optimized for
+## Priorities
 
-The brief asks for the strongest working slice inside a fixed timebox and says product judgment counts as much as code. I ranked the work like this:
+The brief asks for the strongest working slice inside a fixed timebox and says product judgment counts as much as code. The work was ranked like this:
 
 1. **Nobody loses text.** A document editor that drops a paragraph is worse than no editor. Saving, reloading and two people saving at once had to be right before anything else.
 2. **Sharing rules that hold on the server.** The interesting part of sharing is not the dialog. It is whether a viewer can still save by calling the API directly. They cannot.
@@ -71,7 +71,7 @@ Two choices worth pointing out:
 
 ## Saving and working together
 
-I did not build real time co-editing. Doing it properly means a CRDT or operational transforms plus a socket server, which is a project of its own. Doing it badly loses text, which breaks priority 1. What I built instead is small and honest:
+Real time co-editing is not part of this build. Doing it properly means a CRDT or operational transforms plus a socket server, which is a project of its own. Doing it badly loses text, which breaks priority 1. What is there instead is small and honest:
 
 - **Autosave.** The editor saves 0.8 seconds after the last keystroke. Only one save runs at a time and it always sends the latest text. Temporary failures retry with a growing delay. Errors the server will keep refusing are shown and not retried.
 - **Optimistic concurrency.** Every save carries the version it was based on. The database write only succeeds if that version is still current (`UPDATE ... WHERE id = $1 AND version = $2`). The check is inside the SQL statement, so two saves that race cannot both win. A test fires two saves at once and asserts exactly one succeeds.
@@ -89,23 +89,23 @@ The autosave logic is a plain class with no React in it (`src/lib/autosave.ts`).
 3. Convert: plain text to paragraphs, Markdown through `marked`, Word through `mammoth`.
 4. Run the result through the same sanitizer as typed content.
 
-I chose import as new document over attachments because it turns existing work into something editable, which is the reason a team adopts a tool like this. The 4 MB limit sits under the request size limit of serverless hosts.
+Import as a new document was chosen over attachments because it turns existing work into something editable, which is the reason a team adopts a tool like this. The 4 MB limit sits under the request size limit of serverless hosts.
 
 ## Simulated sign in
 
-The brief allows seeded accounts, and I used them on purpose. A cookie holds the id of the acting account and a menu switches it. This makes the sharing flow testable by one person in one browser.
+The brief allows seeded accounts, and this build uses them on purpose. A cookie holds the id of the acting account and a menu switches it. This makes the sharing flow testable by one person in one browser.
 
-The cost is that this is not security. Anyone can act as anyone. The rules behind the cookie are real, and replacing the cookie with a real session changes one file (`src/server/context.ts`).
+The cost is that this is not security. Anyone can act as anyone. The rules behind the cookie are real. Replacing the cookie with a real session is contained in `src/server/context.ts` and the session route.
 
 ## One database interface, two engines
 
-The app talks to the database through a three method interface (`query`, `transaction`, `close`). Production uses node-postgres. Local runs and tests use PGlite, a real Postgres compiled to WebAssembly.
+The app talks to the database through one small interface (`query`, `transaction`, `close`). Production uses node-postgres. Local runs and tests use PGlite, a real Postgres compiled to WebAssembly.
 
 Why this was worth the extra adapter:
 
 - `npm install && npm run dev` works with no account, no Docker and no connection string.
 - The integration tests run the same SQL as production, including constraints, cascades and the version check. They need no network and finish in seconds.
-- I could exercise the whole app in a browser before it was deployed anywhere.
+- The whole app could be exercised in a browser before it was deployed anywhere.
 
 On a hosted platform the app refuses to fall back to the embedded database, because the disk there does not persist.
 
@@ -119,18 +119,18 @@ On a hosted platform the app refuses to fall back to the embedded database, beca
 | `documents.test.ts` | Create, save, reload, rename, 404 for strangers, stale saves, two saves at once, delete with cascade |
 | `shares.test.ts` | Viewer and editor limits, role changes, revoking, owner only rules |
 | `autosave.test.ts` | Debounce, one save at a time, retry delays, conflict stop, flush |
-| `scripts/e2e.mjs` | The review path in a real browser, 12 steps |
+| `scripts/e2e.mjs` | The review path in a real browser, 14 steps, including live role changes and a phone screen |
 
 The browser script found a bug the unit tests could not: pages for missing documents answered HTTP 200. Details are in the AI workflow note.
 
-## What I left out, and why
+## What was left out, and why
 
 | Left out | Reason |
 | --- | --- |
 | Real sign in | Allowed by the brief. It would have cost an hour without showing anything new about the product. |
 | Real time co-editing | Needs a CRDT and a socket layer to be correct. Conflict detection gives safety without it. |
 | Comments, suggestions, version history | Each adds tables and UI surface. None is needed to demonstrate create, edit, import and share. |
-| Export to PDF or Markdown | Small, but I spent the stretch budget on roles because roles deepen the sharing logic the brief asks about. |
+| Export to PDF or Markdown | Small, but the stretch budget went to roles because roles deepen the sharing logic the brief asks about. |
 | Images and tables in imports | Would need storage and a table extension in the editor. Dropped images and flattened tables are stated in the README. |
 | Email invitations | Sharing between seeded accounts shows the whole access model. |
 | Search, folders, pagination | The lists stay short in a demo. |
