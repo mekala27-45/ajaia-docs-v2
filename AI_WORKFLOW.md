@@ -36,7 +36,7 @@ I did not type this code. I directed the work, made the decisions that were mine
 - **Complete app 39 minutes after the brief.** Editor, dashboard, sharing dialog and a browser walkthrough, all green.
 - **Test depth that does not fit a timebox by hand.** 74 tests, many of them against real SQL, plus a 14 step browser script. On my April attempt at this brief I finished with 5 tests.
 - **Current framework knowledge.** The project generator installed Next.js 16.4. The agent read the documentation inside the package instead of relying on memory. That avoided two wrong turns listed below.
-- **Recovery from a surprise.** When Vercel refused to deploy, configuration for two other hosts was in the repository a few minutes later.
+- **Recovery from surprises.** When Vercel refused to deploy, configuration for two other hosts was in the repository a few minutes later. When the first Netlify deploy could not reach the database, the app was reporting the exact reason one deploy later.
 
 ## AI output that was changed or rejected
 
@@ -52,6 +52,7 @@ Each item says how the problem was found. Most were found by the checks, not by 
 8. **A test run that tested the wrong thing.** The first browser run failed on every step. The health endpoint reported 5 documents where a fresh database has 2, which showed an old server process was still holding the port. It was stopped and the run repeated. A red or green run means nothing until you know what it ran against.
 9. **Phone layout.** A screenshot at phone width showed the document title squeezed to two letters. The title now has its own row on small screens, and the browser script checks that neither page scrolls sideways.
 10. **Extra features.** The agent offered Markdown export and a presence indicator as further stretch items. They were dropped when the hosting problem took time. Roles stayed, because they deepen the sharing logic the brief asks about.
+11. **A deploy that could not reach its database.** The first Netlify deploy showed only a generic database error. Instead of guessing, the agent made the health endpoint report the reason. It reported that the saved setting held no Postgres address. I added the key again under Keys and secrets in Netlify and the app connected. The diagnosis stayed in the product, with tests, because the next person who deploys this would hit the same wall.
 
 ## How correctness, UX quality and reliability were verified
 
@@ -65,6 +66,7 @@ Each item says how the problem was found. Most were found by the checks, not by 
 | Browser walkthrough, 14 steps, in Chrome | Create, format, reload, share, switch accounts, view only, import, refused file, conflict, live update, role change, revoked access, phone width, delete |
 | Screenshots from that walkthrough | Layout and readability. They are in `docs/screenshots` |
 | `/api/health` on the live address | The deployed app reaches its database and the seed ran |
+| The same browser walkthrough against the live site | All 14 steps passed from an outside browser with no Netlify login. This is the check that covers the production database adapter and the hosting setup |
 | {{LIVE_CHECK_ROW}} |
 
 What was **not** verified, so nobody has to guess:
@@ -72,7 +74,7 @@ What was **not** verified, so nobody has to guess:
 - Only Chrome was tested. Firefox and Safari were not.
 - No screen reader pass. Controls have labels and roles, and the dialogs use the native dialog element, but that is not the same as testing with assistive technology.
 - No load test.
-- The committed test suite runs against the embedded Postgres. The node-postgres adapter that production uses was run once by the agent against a Postgres wire protocol server (migration, the document and sharing flow, transaction rollback) and is exercised by the live deployment. That one-off run is not part of the committed suite.
+- The committed test suite runs against the embedded Postgres. The node-postgres adapter that production uses is covered by the browser walkthrough against the live site, and was also run once by the agent against a Postgres wire protocol server. Neither of those runs in CI.
 
 ## Where judgment stayed with me
 

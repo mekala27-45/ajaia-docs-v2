@@ -7,10 +7,10 @@
 
 | | |
 | --- | --- |
-| Live app | {{LIVE_URL}} |
+| Live app | https://ajaia-docs-v2.netlify.app |
 | Walkthrough video | {{VIDEO_URL}} |
 | Source on GitHub | https://github.com/mekala27-45/ajaia-docs-v2 |
-| Google Drive folder | {{DRIVE_URL}} |
+| Google Drive folder | https://drive.google.com/drive/folders/1QIZjmCma63ELqWk4bjagwAORzYL02m7t |
 
 ## Test accounts
 
@@ -68,7 +68,7 @@ Open http://localhost:3000. Tests: `npm test`.
 | Sharing with an owner, a way to grant access, owned and shared shown apart | Working |
 | Persistence of documents, formatting and sharing | Working, in Postgres |
 | Setup and run instructions | README |
-| Live deployment | {{LIVE_URL}} |
+| Live deployment | https://ajaia-docs-v2.netlify.app |
 | Validation and error handling | Working. Input validation on every endpoint, clear messages in the UI, one error format |
 | At least one meaningful automated test | 74 tests, a 14 step browser script, and CI on every push |
 | Architecture note | `ARCHITECTURE.md` |

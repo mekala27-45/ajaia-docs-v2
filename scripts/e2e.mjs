@@ -43,7 +43,16 @@ async function waitSaved(page) {
 fs.mkdirSync(SHOTS_DIR, { recursive: true });
 const shot = (page, name) => page.screenshot({ path: path.join(SHOTS_DIR, name), fullPage: false });
 
-const browser = await chromium.launch({ executablePath: CHROME_PATH, args: ["--no-sandbox"] });
+// A remote BASE_URL may need an outbound proxy. Local runs never do.
+const isLocal = /\/\/(localhost|127\.0\.0\.1)[:/]/.test(BASE_URL + "/");
+const proxyServer = process.env.E2E_PROXY ?? (isLocal ? undefined : process.env.HTTPS_PROXY);
+const browser = await chromium.launch({
+  executablePath: CHROME_PATH,
+  args: ["--no-sandbox"],
+  proxy: proxyServer ? { server: proxyServer } : undefined,
+});
+// Documents created along the way that no later step deletes.
+const leftovers = [];
 const context = await browser.newContext({ viewport: { width: 1280, height: 860 } });
 const page = await context.newPage();
 const pageErrors = [];
@@ -174,6 +183,7 @@ await step("a person without access gets the not found page", async () => {
   await page.getByTestId("new-document").click();
   await page.waitForURL(/\/d\/[0-9a-f-]{36}$/);
   const privateUrl = page.url();
+  leftovers.push(privateUrl.split("/").pop());
   await page.goto(BASE_URL);
   await switchUser(page, "Carol Reyes");
   const response = await page.goto(privateUrl);
@@ -186,6 +196,7 @@ await step("import a .docx file into a new editable document", async () => {
   await switchUser(page, "Alice Chen");
   await page.getByTestId("import-input").setInputFiles("samples/sample.docx");
   await page.waitForURL(/\/d\/[0-9a-f-]{36}$/);
+  leftovers.push(page.url().split("/").pop());
   const editor = page.getByTestId("editor");
   await editor.waitFor();
   const html = await editor.innerHTML();
@@ -320,6 +331,18 @@ await step("owner deletes the document", async () => {
   expect((await page.getByTestId("owned-documents").getByText(title).count()) === 0, "deleted document still listed");
   const response = await page.goto(docUrl);
   expect(response.status() === 404, "deleted document should be gone");
+});
+
+await step("clean up the documents this run created", async () => {
+  await page.goto(BASE_URL);
+  await switchUser(page, "Alice Chen").catch(() => undefined);
+  for (const id of leftovers) {
+    const status = await page.evaluate(async (docId) => {
+      const response = await fetch(`/api/documents/${docId}`, { method: "DELETE" });
+      return response.status;
+    }, id);
+    expect(status === 200 || status === 404, `could not delete ${id}: ${status}`);
+  }
 });
 
 await browser.close();

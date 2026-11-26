@@ -4,7 +4,7 @@ A lightweight collaborative document editor. Create and format documents in the 
 
 Built for the Ajaia Full Stack Product Engineer assignment.
 
-- **Live app:** {{LIVE_URL}}
+- **Live app:** https://ajaia-docs-v2.netlify.app
 - **Walkthrough video:** {{VIDEO_URL}}
 - **Source:** https://github.com/mekala27-45/ajaia-docs-v2
 - **Architecture note:** [ARCHITECTURE.md](ARCHITECTURE.md)
@@ -104,7 +104,7 @@ npm run build && npm start        # terminal 1
 npm run e2e                       # terminal 2
 ```
 
-Set `BASE_URL` to point the script at another address and `CHROME_PATH` if Chrome is not at `/usr/bin/google-chrome`.
+Set `BASE_URL` to point the script at another address, for example the live site, and `CHROME_PATH` if Chrome is not at `/usr/bin/google-chrome`. The script deletes the documents it creates.
 
 ## Deploy
 
@@ -112,7 +112,7 @@ The live app runs on Netlify with a free Neon Postgres database. Both have free 
 
 1. Create a Postgres database (Neon, Supabase or any other) and copy its connection string.
 2. Import this repository in Netlify. The build command (`npm run build`) and the publish folder (`.next`) are read from `netlify.toml`.
-3. Add the environment variable `DATABASE_URL` with the connection string. It can be pasted the way the database console copies it, including a leading `psql` and quotes.
+3. Add `DATABASE_URL` with the connection string as an environment variable. Netlify lists these under Keys and secrets. The value can be pasted the way the database console copies it, including a leading `psql` and quotes.
 4. Deploy, then open `/api/health` on the new address. It should answer `{"ok":true,"database":"postgres",...}`. If the database cannot be reached, the answer names the reason, for example `missing_database_url` or `authentication_failed`.
 
 The app also runs as a plain Node server on any host: `npm run build && npm start` with `DATABASE_URL` set. A `render.yaml` blueprint for Render is included.
