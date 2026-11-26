@@ -1,0 +1,6 @@
+Meeting notes
+
+Plain text files are imported as paragraphs.
+Single line breaks inside a paragraph are kept.
+
+A blank line starts a new paragraph. Characters like < and & are shown as typed.
