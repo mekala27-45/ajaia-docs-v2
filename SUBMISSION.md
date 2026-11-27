@@ -80,7 +80,7 @@ Open http://localhost:3000. Tests: `npm test`.
 | At least one meaningful automated test | 86 tests, a 16 step browser script that also passes on the live site, and CI on every push |
 | Architecture note | `ARCHITECTURE.md` |
 | AI workflow note | `AI_WORKFLOW.md` |
-| Walkthrough video | Done, but recorded after the timer because of a power outage. See the note on timing below |
+| Walkthrough video | Done, but recorded after the timer because of a power outage. See the note on timing near the top |
 | Stretch (optional) | Role based sharing: `Can edit` and `View only`, enforced on the server. Added after the core was verified on the live site: a presence indicator and Markdown export |
 
 ## What is partial or not built
