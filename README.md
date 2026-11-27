@@ -5,7 +5,7 @@ A lightweight collaborative document editor. Create and format documents in the 
 Built for the Ajaia Full Stack Product Engineer assignment.
 
 - **Live app:** https://ajaia-docs-v2.netlify.app
-- **Walkthrough video:** {{VIDEO_URL}}
+- **Walkthrough video:** not recorded yet. A power outage ended my timed session first. See the note in [SUBMISSION.md](SUBMISSION.md)
 - **Source:** https://github.com/mekala27-45/ajaia-docs-v2
 - **Architecture note:** [ARCHITECTURE.md](ARCHITECTURE.md)
 - **AI workflow note:** [AI_WORKFLOW.md](AI_WORKFLOW.md)
