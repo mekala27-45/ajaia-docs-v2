@@ -8,7 +8,7 @@
 | | |
 | --- | --- |
 | Live app | https://ajaia-docs-v2.netlify.app |
-| Walkthrough video | Not recorded yet. See the note on timing below |
+| Walkthrough video | https://www.loom.com/share/845522b3219441e5a676ea60ddf3ba5f |
 | Source on GitHub | https://github.com/mekala27-45/ajaia-docs-v2 |
 | Google Drive folder | https://drive.google.com/drive/folders/1QIZjmCma63ELqWk4bjagwAORzYL02m7t |
 
@@ -16,9 +16,8 @@
 
 - Everything in this folder was built, deployed and verified inside my timed session on November 26, 2026. The commit history shows it. The first commit is at 2:14 PM Eastern and the last change to application code is at 3:37 PM Eastern.
 - Later in the session my area lost power. New Jersey was under a statewide state of emergency for a Thanksgiving storm that day. I could not get back online before the timer expired, and the portal auto-submitted without my links.
-- The walkthrough video was the one deliverable I had not finished. The script was ready and the recording was not made. I will add the link to `VIDEO_LINK.txt` as soon as I can record it.
-- One commit made after the outage changes only these notes. It replaces the video placeholders and adds this explanation. No application code changed after 3:37 PM.
-- Until the video exists, the `screenshots` folder shows each main flow, and the review path below takes about three minutes on the live site.
+- The walkthrough video was the one deliverable I had not finished when the power went out. I recorded it the same evening, after the power was back and after the timer had expired. It shows the deployed app as it stood at 3:37 PM.
+- The commits made after the outage change only these notes. They add the video link and this explanation. No application code changed after 3:37 PM.
 
 ## Test accounts
 
@@ -49,7 +48,7 @@ The README has the full path, including how to see conflict handling with two br
 | `README.md` | What the app does, test accounts, local setup and run instructions, deployment, API |
 | `ARCHITECTURE.md` | Priorities, data model, access rules, save and conflict model, scope cuts, next steps |
 | `AI_WORKFLOW.md` | Tools, how the work was split, AI output that was changed or rejected, how it was verified |
-| `VIDEO_LINK.txt` | Status of the walkthrough video |
+| `VIDEO_LINK.txt` | Link to the walkthrough video |
 | `LIVE_URL.txt` | Link to the live app and the test accounts |
 | `ajaia-docs-v2-source.zip` | Full source code, without `node_modules` and build output |
 | `screenshots/` | Screens from the automated browser walkthrough |
@@ -81,7 +80,7 @@ Open http://localhost:3000. Tests: `npm test`.
 | At least one meaningful automated test | 86 tests, a 16 step browser script that also passes on the live site, and CI on every push |
 | Architecture note | `ARCHITECTURE.md` |
 | AI workflow note | `AI_WORKFLOW.md` |
-| Walkthrough video | Not recorded. A power outage ended my session first. See the note on timing below |
+| Walkthrough video | Done, but recorded after the timer because of a power outage. See the note on timing below |
 | Stretch (optional) | Role based sharing: `Can edit` and `View only`, enforced on the server. Added after the core was verified on the live site: a presence indicator and Markdown export |
 
 ## What is partial or not built

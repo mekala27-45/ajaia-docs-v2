@@ -85,6 +85,6 @@ What was **not** verified, so nobody has to guess:
 
 ## What I would do differently next time
 
-- Record a first take of the walkthrough as soon as the core flow works. I left the video for last, and a power outage ended my session before I recorded it.
+- Record a first take of the walkthrough as soon as the core flow works. I left the video for last, a power outage ended my session, and I had to record it after the timer.
 - Check the hosting account before the clock starts. The blocked Vercel account cost time that had nothing to do with the product.
 - Ask the agent for the browser script earlier. It found a bug that the unit and integration tests could not see.
